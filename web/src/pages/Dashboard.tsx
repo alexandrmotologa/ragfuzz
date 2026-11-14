@@ -5,6 +5,8 @@ import { RadarScorecard } from '../components/RadarScorecard'
 import { QueryInspector } from '../components/QueryInspector'
 import { ChunkHeatmap } from '../components/ChunkHeatmap'
 import { RecommendationsPanel } from '../components/RecommendationsPanel'
+import { LivePlayground } from '../components/LivePlayground'
+import { TopologyGraphView } from '../components/TopologyGraphView'
 import { Play, RotateCw, CheckCircle2, AlertOctagon } from 'lucide-react'
 
 interface DashboardProps {
@@ -26,9 +28,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   progress,
   onTriggerRun,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'queries' | 'chunks' | 'mitigations'>(
-    'overview'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'queries' | 'chunks' | 'graph' | 'playground' | 'mitigations'
+  >('overview')
 
   if (!summary && !isRunning) {
     return (
@@ -109,6 +111,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
             }`}
           >
             Chunk Heatmap ({chunks.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('graph')}
+            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+              activeTab === 'graph'
+                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Topology Graph
+          </button>
+          <button
+            onClick={() => setActiveTab('playground')}
+            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+              activeTab === 'playground'
+                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Live Playground
           </button>
           <button
             onClick={() => setActiveTab('mitigations')}
@@ -231,6 +253,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {activeTab === 'queries' && <QueryInspector evaluations={evaluations} />}
 
       {activeTab === 'chunks' && <ChunkHeatmap chunks={chunks} />}
+
+      {activeTab === 'graph' && <TopologyGraphView />}
+
+      {activeTab === 'playground' && <LivePlayground chunks={chunks} />}
 
       {activeTab === 'mitigations' && (
         <RecommendationsPanel recommendations={recommendations} />

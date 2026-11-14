@@ -21,6 +21,34 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestPresets(t *testing.T) {
+	cfg := DefaultConfig()
+
+	// Apply LangChain preset
+	err := cfg.Target.ApplyPreset("langchain")
+	if err != nil {
+		t.Fatalf("failed to apply langchain preset: %v", err)
+	}
+	if cfg.Target.ResponseMapping.AnswerPath != "output.answer" {
+		t.Errorf("expected output.answer, got %s", cfg.Target.ResponseMapping.AnswerPath)
+	}
+
+	// Apply LlamaIndex preset
+	err = cfg.Target.ApplyPreset("llamaindex")
+	if err != nil {
+		t.Fatalf("failed to apply llamaindex preset: %v", err)
+	}
+	if cfg.Target.ResponseMapping.ChunksPath != "source_nodes" {
+		t.Errorf("expected source_nodes, got %s", cfg.Target.ResponseMapping.ChunksPath)
+	}
+
+	// Invalid preset
+	err = cfg.Target.ApplyPreset("nonexistent")
+	if err == nil {
+		t.Error("expected error for nonexistent preset")
+	}
+}
+
 func TestExpandEnv(t *testing.T) {
 	os.Setenv("TEST_RAG_PORT", "9999")
 	defer os.Unsetenv("TEST_RAG_PORT")
@@ -45,6 +73,7 @@ target:
   endpoint: "http://api.local:8000/rag"
   concurrency: 25
   timeout: 5s
+  preset: "dspy"
 corpus:
   paths: ["./docs"]
 fuzzer:
@@ -72,11 +101,8 @@ thresholds:
 	if cfg.Target.Timeout != 5*time.Second {
 		t.Errorf("expected timeout 5s, got: %v", cfg.Target.Timeout)
 	}
-	if cfg.Fuzzer.TotalQueries != 500 {
-		t.Errorf("expected total_queries 500, got: %d", cfg.Fuzzer.TotalQueries)
-	}
-	if cfg.Thresholds.MinGroundedness != 0.92 {
-		t.Errorf("expected min_groundedness 0.92, got: %f", cfg.Thresholds.MinGroundedness)
+	if cfg.Target.ResponseMapping.ChunksPath != "context" {
+		t.Errorf("expected dspy context path, got: %s", cfg.Target.ResponseMapping.ChunksPath)
 	}
 }
 

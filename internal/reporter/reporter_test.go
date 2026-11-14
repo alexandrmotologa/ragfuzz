@@ -158,3 +158,40 @@ func TestWriteHTMLReport(t *testing.T) {
 		t.Errorf("expected radar SVG and title in HTML report")
 	}
 }
+
+func TestExportBenchmarkDatasetAndMarkdown(t *testing.T) {
+	session := createSampleSession()
+	tmpDir := t.TempDir()
+
+	// 1. Ragas Export
+	ragasPath := filepath.Join(tmpDir, "ragas.json")
+	if err := ExportBenchmarkDataset(ragasPath, "ragas", session.Evaluations); err != nil {
+		t.Fatalf("ExportBenchmarkDataset(ragas) failed: %v", err)
+	}
+	data, _ := os.ReadFile(ragasPath)
+	if !strings.Contains(string(data), "evolution_type") {
+		t.Error("expected evolution_type in ragas export")
+	}
+
+	// 2. HuggingFace Export
+	hfPath := filepath.Join(tmpDir, "dataset.jsonl")
+	if err := ExportBenchmarkDataset(hfPath, "huggingface", session.Evaluations); err != nil {
+		t.Fatalf("ExportBenchmarkDataset(huggingface) failed: %v", err)
+	}
+
+	// 3. CSV Export
+	csvPath := filepath.Join(tmpDir, "dataset.csv")
+	if err := ExportBenchmarkDataset(csvPath, "csv", session.Evaluations); err != nil {
+		t.Fatalf("ExportBenchmarkDataset(csv) failed: %v", err)
+	}
+
+	// 4. Markdown GitHub Summary
+	mdPath := filepath.Join(tmpDir, "github-summary.md")
+	if err := GenerateGitHubMarkdown(mdPath, session); err != nil {
+		t.Fatalf("GenerateGitHubMarkdown failed: %v", err)
+	}
+	mdData, _ := os.ReadFile(mdPath)
+	if !strings.Contains(string(mdData), "## 🛡️ ragfuzz :: Adversarial RAG Quality Gate") {
+		t.Error("expected markdown gate banner")
+	}
+}

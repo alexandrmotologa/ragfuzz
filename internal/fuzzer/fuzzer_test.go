@@ -102,6 +102,16 @@ func TestAllSixMutators(t *testing.T) {
 	if oodCases[0].ExpectedBehavior != BehaviorRefusal {
 		t.Errorf("expected refusal behavior for OOD, got: %s", oodCases[0].ExpectedBehavior)
 	}
+
+	// 7. Multi-turn Conversational Drift
+	mt := NewMultiTurnMutator()
+	mtDialogs := mt.GenerateDialogues(topology, 2)
+	if len(mtDialogs) == 0 {
+		t.Fatal("expected multi-turn dialogs to be generated")
+	}
+	if len(mtDialogs[0].Turns) != 3 {
+		t.Errorf("expected 3 turns in dialogue, got %d", len(mtDialogs[0].Turns))
+	}
 }
 
 func TestGeneratorSuiteDistribution(t *testing.T) {

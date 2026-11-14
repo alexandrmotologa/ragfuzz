@@ -112,3 +112,25 @@ export interface Recommendation {
   action_plan: string
   suggested_fix: string
 }
+
+export interface GraphNode {
+  id: string
+  heading: string
+  doc_path: string
+  word_count: number
+  vulnerability?: number
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  similarity: number
+  shared_keys: string[]
+  is_distractor: boolean
+}
+
+export interface GraphData {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+

@@ -22,6 +22,7 @@ type CaseEvaluation struct {
 	Passed             bool                  `json:"passed"`
 	FailureReason      string                `json:"failure_reason,omitempty"`
 	NLI                *NLIResult            `json:"nli,omitempty"`
+	TokenOverhead      TokenOverheadStats    `json:"token_overhead"`
 	Latency            time.Duration         `json:"latency"`
 }
 
@@ -41,6 +42,7 @@ type SuiteSummary struct {
 	RefusalRecall         float64                    `json:"refusal_recall"`
 	RefusalF1             float64                    `json:"refusal_f1"`
 	DistractorIntrusions  int                        `json:"distractor_intrusions"`
+	TokenOverhead         TokenOverheadStats         `json:"token_overhead"`
 	MeanLatencyMs         float64                    `json:"mean_latency_ms"`
 	P95LatencyMs          float64                    `json:"p95_latency_ms"`
 	VectorScores          map[fuzzer.AttackVector]float64 `json:"vector_scores"`
@@ -100,6 +102,9 @@ func EvaluateCase(tc *fuzzer.TestCase, resp *RAGResponse, topK int, minGroundedn
 
 	// Calculate MRR
 	eval.MRR = computeMRR(retrievedIDs, tc.ExpectedChunkIDs)
+
+	// Compute token overhead
+	eval.TokenOverhead = ComputeTokenOverhead(nil, resp.RetrievedChunks)
 
 	// Check distractor intrusion
 	for _, dID := range tc.DistractorChunkIDs {

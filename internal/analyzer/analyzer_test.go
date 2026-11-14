@@ -1,13 +1,14 @@
 package analyzer
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/alexandrmotologa/ragfuzz/internal/config"
 	"github.com/alexandrmotologa/ragfuzz/internal/fuzzer"
 	"github.com/alexandrmotologa/ragfuzz/internal/oracle"
-	"github.com/alexandrmotologa/ragfuzz/internal/reporter"
 	"github.com/alexandrmotologa/ragfuzz/internal/runner"
 )
 
@@ -42,10 +43,13 @@ func TestCompareReportsAndRecommendations(t *testing.T) {
 	p1 := filepath.Join(tmpDir, "base.json")
 	p2 := filepath.Join(tmpDir, "target.json")
 
-	if err := reporter.WriteJSONReport(p1, s1); err != nil {
+	d1, _ := json.Marshal(map[string]interface{}{"summary": s1.Summary, "evaluations": s1.Evaluations})
+	d2, _ := json.Marshal(map[string]interface{}{"summary": s2.Summary, "evaluations": s2.Evaluations})
+
+	if err := os.WriteFile(p1, d1, 0644); err != nil {
 		t.Fatalf("failed to write base report: %v", err)
 	}
-	if err := reporter.WriteJSONReport(p2, s2); err != nil {
+	if err := os.WriteFile(p2, d2, 0644); err != nil {
 		t.Fatalf("failed to write target report: %v", err)
 	}
 

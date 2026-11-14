@@ -87,6 +87,7 @@ func (s *SessionState) Finish() *oracle.SuiteSummary {
 	// Compute averages
 	var sumGroundedness, sumRecallClean, sumRecallMutated, sumMRR float64
 	var sumLatencyMs float64
+	var sumTokensClean, sumTokensMutated int
 	oodTrueRefusals := 0
 	oodTotal := 0
 	inDomainFalseRefusals := 0
@@ -98,6 +99,7 @@ func (s *SessionState) Finish() *oracle.SuiteSummary {
 		sumRecallMutated += ev.MutatedRecallAtK
 		sumMRR += ev.MRR
 		sumLatencyMs += float64(ev.Latency.Milliseconds())
+		sumTokensMutated += ev.TokenOverhead.MutatedTokens
 
 		if ev.TestCase.Vector == fuzzer.VectorOOD {
 			oodTotal++
@@ -121,6 +123,12 @@ func (s *SessionState) Finish() *oracle.SuiteSummary {
 		summary.MeanMRR = sumMRR / n
 		summary.HallucinationRate = 1.0 - summary.MeanGroundedness
 		summary.MeanLatencyMs = sumLatencyMs / n
+		summary.TokenOverhead = oracle.TokenOverheadStats{
+			CleanTokens:          sumTokensClean,
+			MutatedTokens:        sumTokensMutated,
+			OverheadTokens:       sumTokensMutated - sumTokensClean,
+			EstimatedCostUSDPerM: float64(sumTokensMutated-sumTokensClean) * 0.0025,
+		}
 	}
 
 	// Refusal Calibration metrics

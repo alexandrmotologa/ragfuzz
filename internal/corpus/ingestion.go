@@ -103,7 +103,7 @@ func IngestCorpus(cfg *config.CorpusConfig) ([]*Chunk, error) {
 
 func isSupportedExtension(p string) bool {
 	ext := strings.ToLower(filepath.Ext(p))
-	return ext == ".md" || ext == ".markdown" || ext == ".txt" || ext == ".json" || ext == ".jsonl"
+	return ext == ".md" || ext == ".markdown" || ext == ".txt" || ext == ".json" || ext == ".jsonl" || ext == ".pdf"
 }
 
 func processFile(path string, cfg *config.CorpusConfig) ([]*Chunk, error) {
@@ -120,6 +120,8 @@ func processFile(path string, cfg *config.CorpusConfig) ([]*Chunk, error) {
 	}
 
 	switch ext {
+	case ".pdf":
+		return parsePDFFile(relPath, data, cfg)
 	case ".json":
 		return parseJSONFile(relPath, data, cfg)
 	case ".jsonl":

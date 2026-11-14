@@ -8,8 +8,12 @@ import (
 
 	"github.com/alexandrmotologa/ragfuzz/internal/fuzzer"
 	"github.com/alexandrmotologa/ragfuzz/internal/oracle"
-	"github.com/alexandrmotologa/ragfuzz/internal/reporter"
 )
+
+type fullReport struct {
+	Summary     *oracle.SuiteSummary     `json:"summary"`
+	Evaluations []*oracle.CaseEvaluation `json:"evaluations"`
+}
 
 // DiffResult captures regressions and improvements between two evaluation runs.
 type DiffResult struct {
@@ -31,7 +35,7 @@ func CompareReports(baselinePath, targetPath string) (*DiffResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read baseline report: %w", err)
 	}
-	var baseline reporter.FullReport
+	var baseline fullReport
 	if err := json.Unmarshal(bData, &baseline); err != nil {
 		return nil, fmt.Errorf("failed to parse baseline report: %w", err)
 	}
@@ -40,7 +44,7 @@ func CompareReports(baselinePath, targetPath string) (*DiffResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read target report: %w", err)
 	}
-	var target reporter.FullReport
+	var target fullReport
 	if err := json.Unmarshal(tData, &target); err != nil {
 		return nil, fmt.Errorf("failed to parse target report: %w", err)
 	}

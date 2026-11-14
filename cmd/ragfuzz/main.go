@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/alexandrmotologa/ragfuzz/internal/analyzer"
 	"github.com/alexandrmotologa/ragfuzz/internal/config"
@@ -20,7 +22,7 @@ import (
 	"github.com/alexandrmotologa/ragfuzz/internal/server"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 func printUsage() {
 	fmt.Printf(`ragfuzz v%s :: Adversarial Query Fuzzer & Stress Suite for Production RAG
@@ -33,6 +35,9 @@ Commands:
   studio          Launch embedded React 19 evaluation studio on HTTP :4040
   mock-server     Start local self-contained mock RAG server for local verification
   diff            Compare two JSON reports to detect regressions between test runs
+  export          Export generated test cases to benchmark datasets (ragas, huggingface, csv)
+  pr-comment      Generate GitHub PR summary markdown from an evaluation report
+  probe           Execute an on-the-fly single adversarial probe query
   version         Print ragfuzz version information
 
 Run 'ragfuzz <command> --help' for details on specific command arguments.
@@ -55,6 +60,12 @@ func main() {
 		mockServerCommand(os.Args[2:])
 	case "diff":
 		diffCommand(os.Args[2:])
+	case "export":
+		exportCommand(os.Args[2:])
+	case "pr-comment":
+		prCommentCommand(os.Args[2:])
+	case "probe":
+		probeCommand(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Printf("ragfuzz v%s (go/react19)\n", version)
 		os.Exit(0)
@@ -75,6 +86,8 @@ func runCommand(args []string) {
 	totalQueries := fs.Int("queries", 0, "Override total synthetic queries count")
 	concurrency := fs.Int("concurrency", 0, "Override concurrency level")
 	failBelow := fs.Float64("fail-below", 0, "Override minimum groundedness threshold (0.0 to 1.0)")
+	preset := fs.String("preset", "", "Apply framework preset (langchain, llamaindex, openai, dspy, flowise)")
+	githubSummaryPath := fs.String("github-summary", "", "Filepath to output GitHub PR summary markdown")
 	launchStudio := fs.Bool("studio", false, "Launch interactive studio after running evaluation")
 	fs.Parse(args)
 
@@ -86,7 +99,7 @@ func runCommand(args []string) {
 	}
 
 	// Apply CLI overrides
-	cfg.ApplyOverrides(*targetURL, *concurrency, *totalQueries, *failBelow)
+	cfg.ApplyOverrides(*targetURL, *concurrency, *totalQueries, *failBelow, *preset)
 	if *corpusPath != "" {
 		cfg.Corpus.Paths = []string{*corpusPath}
 	}
@@ -174,6 +187,12 @@ func runCommand(args []string) {
 		}
 	}
 
+	if *githubSummaryPath != "" {
+		if err := reporter.GenerateGitHubMarkdown(*githubSummaryPath, session); err == nil {
+			fmt.Printf("[+] Exported GitHub PR Summary: %s\n", *githubSummaryPath)
+		}
+	}
+
 	if *launchStudio || cfg.Studio.OpenBrowser {
 		fmt.Printf("\n[+] Launching Embedded Studio on http://localhost:%d...\n", cfg.Studio.Port)
 		srv := server.NewServer(cfg, chunks, topology, session)
@@ -230,36 +249,8 @@ func mockServerCommand(args []string) {
 	corpusPath := fs.String("corpus", "./examples/corpus", "Path to corpus directory")
 	fs.Parse(args)
 
-	cfg := &config.CorpusConfig{
-		Paths:          []string{*corpusPath},
-		ChunkSize:      800,
-		ChunkOverlap:   150,
-		MinChunkLength: 30,
-	}
-
-	chunks, err := corpus.IngestCorpus(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[-] Mock server corpus ingestion failed: %v\n", err)
-		os.Exit(2)
-	}
-
-	topology := corpus.BuildTopology(chunks)
-	fmt.Printf("[+] Mock RAG Server initialized with %d corpus chunks\n", len(chunks))
-
-	// Reusable mock server runner logic
-	targetCfg := &config.TargetConfig{
-		Endpoint: fmt.Sprintf("http://localhost:%d/query", *port),
-	}
-	_ = targetCfg
-
-	fmt.Printf("[+] Serving mock RAG API on http://localhost:%d/query\n", *port)
-	srv := &server.Server{}
-	_ = srv
-	_ = topology
-
-	// Use external runner or run standalone
 	cmdStr := fmt.Sprintf("go run ./examples/mock_rag_server.go -port %d -corpus %s", *port, *corpusPath)
-	fmt.Printf("[+] Run with: %s\n", cmdStr)
+	fmt.Printf("[+] Launch mock server with: %s\n", cmdStr)
 }
 
 func diffCommand(args []string) {
@@ -268,10 +259,7 @@ func diffCommand(args []string) {
 		os.Exit(2)
 	}
 
-	baselinePath := args[0]
-	targetPath := args[1]
-
-	diff, err := analyzer.CompareReports(baselinePath, targetPath)
+	diff, err := analyzer.CompareReports(args[0], args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[-] Diff failed: %v\n", err)
 		os.Exit(2)
@@ -282,6 +270,157 @@ func diffCommand(args []string) {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func exportCommand(args []string) {
+	fs := flag.NewFlagSet("export", flag.ExitOnError)
+	configPath := fs.String("config", "", "Path to config YAML")
+	format := fs.String("format", "ragas", "Target format: ragas, huggingface, or csv")
+	outPath := fs.String("out", "ragfuzz_benchmark.json", "Output file path")
+	count := fs.Int("count", 100, "Number of test cases to synthesize and export")
+	fs.Parse(args)
+
+	cfgPath := resolveConfigPath(*configPath)
+	cfg, err := config.LoadConfig(cfgPath)
+	if err != nil {
+		cfg = config.DefaultConfig()
+	}
+	cfg.Fuzzer.TotalQueries = *count
+
+	chunks, err := corpus.IngestCorpus(&cfg.Corpus)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Corpus ingestion failed: %v\n", err)
+		os.Exit(2)
+	}
+
+	topology := corpus.BuildTopology(chunks)
+	generator := fuzzer.NewGenerator(&cfg.Fuzzer, topology)
+	suite, err := generator.GenerateSuite()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Generation failed: %v\n", err)
+		os.Exit(2)
+	}
+
+	if err := reporter.ExportSuiteCases(*outPath, *format, suite); err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Export failed: %v\n", err)
+		os.Exit(2)
+	}
+
+	fmt.Printf("[+] Successfully exported %d benchmark cases to %s (%s format)\n", len(suite), *outPath, *format)
+}
+
+func prCommentCommand(args []string) {
+	fs := flag.NewFlagSet("pr-comment", flag.ExitOnError)
+	reportPath := fs.String("report", "ragfuzz-report.json", "Path to JSON evaluation report")
+	outPath := fs.String("out", "github-summary.md", "Output markdown path")
+	fs.Parse(args)
+
+	data, err := os.ReadFile(*reportPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Could not read report file: %v\n", err)
+		os.Exit(2)
+	}
+
+	type fullReportContainer struct {
+		Summary     *oracle.SuiteSummary     `json:"summary"`
+		Evaluations []*oracle.CaseEvaluation `json:"evaluations"`
+	}
+
+	var report fullReportContainer
+	if err := json.Unmarshal(data, &report); err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Invalid JSON report: %v\n", err)
+		os.Exit(2)
+	}
+
+	session := runner.NewSessionState(len(report.Evaluations), config.Thresholds{
+		MinGroundedness:      0.85,
+		MaxRecallDegradation: 0.15,
+		MinRefusalF1:         0.90,
+		MaxHallucinationRate: 0.10,
+	})
+	session.Evaluations = report.Evaluations
+	session.Summary = report.Summary
+
+	for _, ev := range report.Evaluations {
+		session.VectorTotal[ev.TestCase.Vector]++
+		if ev.Passed {
+			session.VectorPass[ev.TestCase.Vector]++
+		}
+	}
+
+	if err := reporter.GenerateGitHubMarkdown(*outPath, session); err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Failed to generate markdown: %v\n", err)
+		os.Exit(2)
+	}
+
+	fmt.Printf("[+] Generated GitHub PR Markdown summary in %s\n", *outPath)
+}
+
+func probeCommand(args []string) {
+	fs := flag.NewFlagSet("probe", flag.ExitOnError)
+	targetURL := fs.String("target", "http://localhost:8080/query", "Target RAG endpoint")
+	query := fs.String("query", "How does SSO authentication work?", "User query to test")
+	vector := fs.String("vector", "negation_inversion", "Attack vector to mutate query with")
+	fs.Parse(args)
+
+	vec := fuzzer.AttackVector(*vector)
+	mutated := *query
+	switch vec {
+	case fuzzer.VectorNegation:
+		mutated = fmt.Sprintf("What components do NOT allow or exclude %s?", *query)
+	case fuzzer.VectorTypoNoise:
+		mutator := fuzzer.NewTypoMutator(2, time.Now().UnixNano())
+		words := strings.Fields(*query)
+		if len(words) > 0 {
+			words[len(words)-1] = mutator.InjectTypo(words[len(words)-1])
+			mutated = strings.Join(words, " ")
+		}
+	case fuzzer.VectorOOD:
+		mutated = "How do I configure quantum key distribution modules for orbital relay?"
+	}
+
+	fmt.Printf("[+] Target: %s\n", *targetURL)
+	fmt.Printf("[+] Baseline Query: %s\n", *query)
+	fmt.Printf("[+] Mutated Query:  %s\n", mutated)
+
+	cfg := config.DefaultConfig()
+	cfg.Target.Endpoint = *targetURL
+	client := runner.NewRAGClient(&cfg.Target)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := client.Query(ctx, mutated)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[-] Query failed: %v\n", err)
+		os.Exit(2)
+	}
+
+	tc := &fuzzer.TestCase{
+		ID:                "TC-PROBE-CLI",
+		Vector:            vec,
+		CleanQuery:        *query,
+		MutatedQuery:      mutated,
+		ExpectedBehavior:  fuzzer.BehaviorAnswer,
+		GroundTruthAnswer: "Ground truth answer.",
+	}
+	if vec == fuzzer.VectorOOD {
+		tc.ExpectedBehavior = fuzzer.BehaviorRefusal
+	}
+
+	eval := oracle.EvaluateCase(tc, resp, 5, 0.85)
+	status := "PASS"
+	if !eval.Passed {
+		status = "FAIL"
+	}
+
+	fmt.Printf("\n--- Probe Result: %s ---\n", status)
+	fmt.Printf("Answer: %s\n", resp.Answer)
+	fmt.Printf("Groundedness: %.1f%%\n", eval.Groundedness*100)
+	fmt.Printf("Retrieved Chunks: %d\n", len(resp.RetrievedChunks))
+	if !eval.Passed {
+		fmt.Printf("Failure Reason: %s\n", eval.FailureReason)
+	}
 }
 
 func resolveConfigPath(custom string) string {

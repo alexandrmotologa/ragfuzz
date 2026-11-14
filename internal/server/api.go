@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,6 +49,8 @@ func (s *Server) Router() http.Handler {
 	mux.HandleFunc("/api/summary", s.handleSummary)
 	mux.HandleFunc("/api/cases", s.handleCases)
 	mux.HandleFunc("/api/chunks", s.handleChunks)
+	mux.HandleFunc("/api/graph", s.handleGraph)
+	mux.HandleFunc("/api/probe", s.handleProbe)
 	mux.HandleFunc("/api/recommendations", s.handleRecommendations)
 	mux.HandleFunc("/api/run", s.handleRun)
 	mux.Handle("/api/stream", s.hub)
@@ -201,6 +204,140 @@ func (s *Server) handleRecommendations(w http.ResponseWriter, r *http.Request) {
 
 	recs := analyzer.GenerateRecommendations(s.session.Summary)
 	respondJSON(w, http.StatusOK, recs)
+}
+
+type graphNode struct {
+	ID            string  `json:"id"`
+	Heading       string  `json:"heading"`
+	DocPath       string  `json:"doc_path"`
+	WordCount     int     `json:"word_count"`
+	Vulnerability float64 `json:"vulnerability"`
+}
+
+type graphEdge struct {
+	Source       string   `json:"source"`
+	Target       string   `json:"target"`
+	Similarity   float64  `json:"similarity"`
+	SharedKeys   []string `json:"shared_keys"`
+	IsDistractor bool     `json:"is_distractor"`
+}
+
+type graphResponse struct {
+	Nodes []graphNode `json:"nodes"`
+	Edges []graphEdge `json:"edges"`
+}
+
+func (s *Server) handleGraph(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var nodes []graphNode
+	for _, ch := range s.chunks {
+		nodes = append(nodes, graphNode{
+			ID:        ch.ID,
+			Heading:   ch.Heading,
+			DocPath:   ch.DocPath,
+			WordCount: ch.WordCount,
+		})
+	}
+
+	var edges []graphEdge
+	if s.topology != nil {
+		for _, p := range s.topology.HighOverlapPairs {
+			edges = append(edges, graphEdge{
+				Source:       p.ChunkA.ID,
+				Target:       p.ChunkB.ID,
+				Similarity:   p.Similarity,
+				SharedKeys:   p.SharedKeys,
+				IsDistractor: p.Similarity > 0.40,
+			})
+		}
+	}
+
+	respondJSON(w, http.StatusOK, graphResponse{Nodes: nodes, Edges: edges})
+}
+
+type probeRequest struct {
+	Query         string `json:"query"`
+	Vector        string `json:"vector"`
+	TargetChunkID string `json:"target_chunk_id"`
+}
+
+func (s *Server) handleProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req probeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	cleanQuery := strings.TrimSpace(req.Query)
+	if cleanQuery == "" {
+		cleanQuery = "Explain the system configuration."
+	}
+
+	mutatedQuery := cleanQuery
+	vec := fuzzer.AttackVector(req.Vector)
+	if vec == "" {
+		vec = fuzzer.VectorNegation
+	}
+
+	// Apply quick live mutation
+	switch vec {
+	case fuzzer.VectorNegation:
+		mutatedQuery = fmt.Sprintf("What components do NOT allow or exclude %s?", cleanQuery)
+	case fuzzer.VectorTypoNoise:
+		mutator := fuzzer.NewTypoMutator(2, time.Now().UnixNano())
+		words := strings.Fields(cleanQuery)
+		if len(words) > 0 {
+			words[len(words)-1] = mutator.InjectTypo(words[len(words)-1])
+			mutatedQuery = strings.Join(words, " ")
+		}
+	case fuzzer.VectorDistractor:
+		if s.topology != nil {
+			dist, shared := s.topology.FindDistractorChunk(req.TargetChunkID)
+			lure := "legacy protocols"
+			if len(shared) > 0 {
+				lure = shared[0]
+			} else if dist != nil && dist.Heading != "" {
+				lure = dist.Heading
+			}
+			mutatedQuery = fmt.Sprintf("%s specifically concerning %s", cleanQuery, lure)
+		}
+	case fuzzer.VectorOOD:
+		mutatedQuery = "How do I configure quantum key distribution modules for orbital relay?"
+	}
+
+	tc := &fuzzer.TestCase{
+		ID:                "TC-PROBE-LIVE",
+		Vector:            vec,
+		CleanQuery:        cleanQuery,
+		MutatedQuery:      mutatedQuery,
+		TargetChunkID:     req.TargetChunkID,
+		ExpectedChunkIDs:  []string{req.TargetChunkID},
+		ExpectedBehavior:  fuzzer.BehaviorAnswer,
+		GroundTruthAnswer: "Live probe ground truth.",
+	}
+	if vec == fuzzer.VectorOOD {
+		tc.ExpectedBehavior = fuzzer.BehaviorRefusal
+		tc.ExpectedChunkIDs = []string{}
+	}
+
+	client := runner.NewRAGClient(&s.cfg.Target)
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.Target.Timeout)
+	defer cancel()
+
+	resp, err := client.Query(ctx, mutatedQuery)
+	if err != nil {
+		resp = &oracle.RAGResponse{Error: err.Error()}
+	}
+
+	eval := oracle.EvaluateCase(tc, resp, s.cfg.Oracle.TopK, s.cfg.Thresholds.MinGroundedness)
+	respondJSON(w, http.StatusOK, eval)
 }
 
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {

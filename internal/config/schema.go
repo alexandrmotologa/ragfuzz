@@ -27,6 +27,9 @@ type TargetConfig struct {
 	// RateLimitRPS is the maximum requests per second (0 means unlimited).
 	RateLimitRPS int `yaml:"rate_limit_rps" json:"rate_limit_rps"`
 
+	// Preset selects an integration template ("langchain", "llamaindex", "openai", "dspy", "flowise").
+	Preset string `yaml:"preset" json:"preset"`
+
 	// RequestTemplate defines the JSON body template with {query} placeholder.
 	// Defaults to `{"query": "{query}"}`.
 	RequestTemplate string `yaml:"request_template" json:"request_template"`

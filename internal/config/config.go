@@ -110,6 +110,12 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse YAML configuration %q: %w", path, err)
 	}
 
+	if cfg.Target.Preset != "" {
+		if err := cfg.Target.ApplyPreset(cfg.Target.Preset); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
@@ -118,7 +124,7 @@ func LoadConfig(path string) (*Config, error) {
 }
 
 // ApplyOverrides applies CLI flag overrides to an existing Config instance.
-func (c *Config) ApplyOverrides(targetEndpoint string, concurrency int, totalQueries int, failBelowGroundedness float64) {
+func (c *Config) ApplyOverrides(targetEndpoint string, concurrency int, totalQueries int, failBelowGroundedness float64, preset string) {
 	if strings.TrimSpace(targetEndpoint) != "" {
 		c.Target.Endpoint = targetEndpoint
 	}
@@ -130,5 +136,8 @@ func (c *Config) ApplyOverrides(targetEndpoint string, concurrency int, totalQue
 	}
 	if failBelowGroundedness > 0 {
 		c.Thresholds.MinGroundedness = failBelowGroundedness
+	}
+	if strings.TrimSpace(preset) != "" {
+		_ = c.Target.ApplyPreset(preset)
 	}
 }
