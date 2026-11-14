@@ -1,14 +1,30 @@
-# ragfuzz
+<p align="center">
+  <img src="docs/images/logo.png?raw=true" alt="ragfuzz Logo" width="130" style="border-radius: 24px;" />
+</p>
 
-Adversarial query fuzzer, semantic stress-testing engine, and groundedness benchmark for production RAG (Retrieval-Augmented Generation) pipelines.
+<h1 align="center">ragfuzz</h1>
 
-Built in Go (< 20MB RAM footprint, single binary) with an embedded React 19 evaluation studio and native CI/CD quality gates.
+<p align="center">
+  <strong>Production-Grade Adversarial Fuzzer & Semantic Stress-Testing Engine for RAG Pipelines</strong>
+</p>
+
+<p align="center">
+  <a href="#quick-start"><img src="https://img.shields.io/badge/go-1.24-00ADD8.svg?style=flat-square&logo=go" alt="Go Version" /></a>
+  <a href="#quick-start"><img src="https://img.shields.io/badge/react-19-61DAFB.svg?style=flat-square&logo=react" alt="React 19" /></a>
+  <a href="#quick-start"><img src="https://img.shields.io/badge/footprint-%3C20MB%20RAM-emerald.svg?style=flat-square" alt="Memory Footprint" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
+</p>
+
+<p align="center">
+  <img src="docs/images/ragfuzz_demo.gif" alt="ragfuzz Studio Demo" width="920" />
+</p>
 
 ---
 
 ## Overview
 
-Production RAG pipelines frequently pass basic happy-path evaluations, but fail when real users introduce adversarial or noisy queries:
+Production RAG (Retrieval-Augmented Generation) pipelines frequently pass basic happy-path evaluations, but fail when real users introduce adversarial or noisy queries:
+
 - **Polarity Blindness**: Dense embedding models map affirmative and negative inquiries to adjacent vector spaces, returning chunks that contradict the question (such as "Which tiers do NOT support SSO?").
 - **Semantic Distractor Traps**: Chunks with high topical overlap crowd out true ground-truth context.
 - **Version Collisions**: Retrievers collapse temporal distinctions between deprecated and current documentation specs (such as v1 vs v2 APIs).
@@ -16,7 +32,40 @@ Production RAG pipelines frequently pass basic happy-path evaluations, but fail 
 - **Corpus Contradictions**: Conflicting statements across outdated documents lead LLMs to hallucinate compromises.
 - **Uncalibrated Refusal**: Queries outside the knowledge base trigger confident hallucinations instead of safe refusals.
 
-`ragfuzz` ingests your documentation corpus, synthesizes adversarial test cases across six targeted stress vectors, benchmarks your pipeline, and blocks failing builds in CI/CD.
+`ragfuzz` ingests your documentation corpus, synthesizes adversarial test cases across six targeted stress vectors, benchmarks your pipeline, and blocks failing builds in CI/CD. Built in Go with an embedded React 19 evaluation studio, it runs in < 20MB of RAM as a single portable binary.
+
+---
+
+## Evaluation Studio Interface
+
+`ragfuzz` includes an interactive React 19 web studio compiled directly into the Go binary via `//go:embed`. It provides real-time Server-Sent Events (SSE) streaming, metric inspection, and cluster diagnostics without external runtime dependencies.
+
+### 1. Adversarial Overview & 6-Axis Radar Scorecard
+Inspect pipeline reliability across Groundedness (NLI), Recall Degradation, Refusal Calibration F1, and Distractor Intrusions.
+
+![ragfuzz Dashboard](docs/images/ragfuzz_dashboard.png)
+
+### 2. Query Inspector & Entailment Breakdown
+Review synthesized queries, inspect Levenshtein token diffs, and verify deterministic NLI claim entailment checks against retrieved chunks.
+
+![ragfuzz Query Inspector](docs/images/ragfuzz_inspector.png)
+
+### 3. Corpus Topology & Distractor Cross-Talk
+Examine pairwise BM25 and TF-IDF topic similarities across chunks to isolate high-overlap failure candidates before deployment.
+
+![ragfuzz Topology Graph](docs/images/ragfuzz_topology.png)
+
+### 4. Live Adversarial Playground
+Run on-the-fly mutations against any corpus chunk and inspect immediate retriever ranking and generator output.
+
+![ragfuzz Live Playground](docs/images/ragfuzz_playground.png)
+
+### 5. Responsive Mobile Diagnostics
+Review CI/CD test run results and pipeline health on mobile and tablet devices with fully responsive layouts.
+
+<p align="center">
+  <img src="docs/images/ragfuzz_mobile.png" alt="ragfuzz Mobile Studio" width="400" />
+</p>
 
 ---
 
@@ -67,7 +116,7 @@ This compiles the React 19 web studio and embeds all assets directly into `bin/r
 ## Quick Start
 
 ### 1. Start the Local Mock RAG Server
-For zero-dependency local testing, run the built-in mock server:
+For zero-dependency local verification, launch the built-in mock server:
 
 ```bash
 go run ./examples/mock_rag_server.go -port 8080 -corpus ./examples/corpus

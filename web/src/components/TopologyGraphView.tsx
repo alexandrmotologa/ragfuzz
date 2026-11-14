@@ -15,7 +15,10 @@ export const TopologyGraphView: React.FC = () => {
       .catch(() => {})
   }, [])
 
-  if (!data || data.nodes.length === 0) {
+  const nodes = data?.nodes || []
+  const edges = data?.edges || []
+
+  if (!data || nodes.length === 0) {
     return (
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-8 text-center text-slate-400 text-xs">
         No topology graph data available.
@@ -27,10 +30,10 @@ export const TopologyGraphView: React.FC = () => {
   const cx = 320
   const cy = 240
   const radius = 170
-  const total = data.nodes.length
+  const total = nodes.length
 
   const nodePositions = new Map<string, { x: number; y: number }>()
-  data.nodes.forEach((n, i) => {
+  nodes.forEach((n, i) => {
     const angle = i * ((2 * Math.PI) / total) - Math.PI / 2
     const x = cx + radius * Math.cos(angle)
     const y = cy + radius * Math.sin(angle)
@@ -46,13 +49,13 @@ export const TopologyGraphView: React.FC = () => {
             <Network className="w-4 h-4 text-sky-400" /> Corpus Chunk Topology & Distractor Links
           </div>
           <div className="text-[11px] text-slate-400">
-            {data.nodes.length} nodes &bull; {data.edges.length} topical similarity edges
+            {nodes.length} nodes &bull; {edges.length} topical similarity edges
           </div>
         </div>
 
-        <svg width="640" height="480" viewBox="0 0 640 480" className="overflow-visible select-none">
+        <svg viewBox="0 0 640 480" className="w-full h-auto max-w-[640px] overflow-visible select-none">
           {/* Similarity Edges */}
-          {data.edges.map((e, idx) => {
+          {edges.map((e, idx) => {
             const p1 = nodePositions.get(e.source)
             const p2 = nodePositions.get(e.target)
             if (!p1 || !p2) return null
@@ -77,7 +80,7 @@ export const TopologyGraphView: React.FC = () => {
           })}
 
           {/* Chunk Nodes */}
-          {data.nodes.map((n) => {
+          {nodes.map((n) => {
             const pos = nodePositions.get(n.id)
             if (!pos) return null
 
@@ -143,7 +146,7 @@ export const TopologyGraphView: React.FC = () => {
                 Interfering Distractor Neighbors:
               </div>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {data.edges
+                {edges
                   .filter((e) => e.source === selectedNode.id || e.target === selectedNode.id)
                   .map((e, idx) => {
                     const otherId = e.source === selectedNode.id ? e.target : e.source

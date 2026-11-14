@@ -235,7 +235,29 @@ func studioCommand(args []string) {
 		topology = corpus.BuildTopology(chunks)
 	}
 
-	srv := server.NewServer(cfg, chunks, topology, nil)
+	var session *runner.SessionState
+	reportFile := "ragfuzz-report.json"
+	if data, err := os.ReadFile(reportFile); err == nil {
+		type fullReport struct {
+			Summary     *oracle.SuiteSummary     `json:"summary"`
+			Evaluations []*oracle.CaseEvaluation `json:"evaluations"`
+		}
+		var fr fullReport
+		if err := json.Unmarshal(data, &fr); err == nil && fr.Summary != nil {
+			session = runner.NewSessionState(len(fr.Evaluations), cfg.Thresholds)
+			session.Evaluations = fr.Evaluations
+			session.Summary = fr.Summary
+			for _, ev := range fr.Evaluations {
+				session.VectorTotal[ev.TestCase.Vector]++
+				if ev.Passed {
+					session.VectorPass[ev.TestCase.Vector]++
+				}
+			}
+			fmt.Printf("[+] Loaded %d evaluations from %s\n", len(fr.Evaluations), reportFile)
+		}
+	}
+
+	srv := server.NewServer(cfg, chunks, topology, session)
 	fmt.Printf("[+] ragfuzz Studio listening on http://localhost:%d\n", cfg.Studio.Port)
 	if err := srv.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "[-] Studio server error: %v\n", err)

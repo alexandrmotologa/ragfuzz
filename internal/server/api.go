@@ -231,7 +231,7 @@ func (s *Server) handleGraph(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var nodes []graphNode
+	nodes := make([]graphNode, 0)
 	for _, ch := range s.chunks {
 		nodes = append(nodes, graphNode{
 			ID:        ch.ID,
@@ -241,7 +241,7 @@ func (s *Server) handleGraph(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	var edges []graphEdge
+	edges := make([]graphEdge, 0)
 	if s.topology != nil {
 		for _, p := range s.topology.HighOverlapPairs {
 			edges = append(edges, graphEdge{

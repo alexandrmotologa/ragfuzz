@@ -181,8 +181,8 @@ func (g *TopologyGraph) computePairwiseSimilarities() []ChunkPair {
 			}
 
 			sim := dotProduct / (norms[i] * norms[j])
-			// Select pairs that are related but distinct (0.25 <= sim <= 0.90)
-			if sim >= 0.25 && sim <= 0.90 {
+			// Select pairs that are related but distinct (0.10 <= sim <= 0.95)
+			if sim >= 0.10 && sim <= 0.95 {
 				pairs = append(pairs, ChunkPair{
 					ChunkA:     g.Chunks[i],
 					ChunkB:     g.Chunks[j],

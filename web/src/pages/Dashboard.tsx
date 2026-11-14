@@ -80,11 +80,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {summary && <MetricCards summary={summary} />}
 
       {/* Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-        <div className="flex gap-2 text-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between border-b border-slate-800 pb-2 gap-2">
+        <div className="flex gap-2 text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'overview'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -94,7 +94,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('queries')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'queries'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -104,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('chunks')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'chunks'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -114,7 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('graph')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'graph'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -124,7 +124,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('playground')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'playground'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -134,7 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('mitigations')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
               activeTab === 'mitigations'
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
                 : 'text-slate-400 hover:text-slate-200'
@@ -147,7 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <button
           onClick={onTriggerRun}
           disabled={isRunning}
-          className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer shrink-0"
         >
           <RotateCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
           {isRunning ? 'Running...' : 'Re-run Suite'}

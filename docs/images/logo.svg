@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="squircle-clip">
+      <rect x="24" y="24" width="976" height="976" rx="220" />
+    </clipPath>
+
+    <linearGradient id="gold-horn-l" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <linearGradient id="gold-horn-r" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="60%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+
+    <linearGradient id="cyan-optic" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="slate-armor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.14" />
+    </filter>
+  </defs>
+
+  <!-- Luxury White Squircle Container -->
+  <rect x="24" y="24" width="976" height="976" rx="220" fill="#ffffff" stroke="#e2e8f0" stroke-width="6" />
+
+  <g clip-path="url(#squircle-clip)">
+    <g transform="translate(512, 512)" filter="url(#subtle-shadow)">
+
+      <!-- Hexagonal Architectural Gateway -->
+      <polygon points="
+        0,-390
+        338,-195
+        338,195
+        0,390
+        -338,195
+        -338,-195
+      " fill="none" stroke="#0f172a" stroke-width="40" stroke-linejoin="round" />
+
+      <polygon points="
+        0,-355
+        307,-177
+        307,177
+        0,355
+        -307,177
+        -307,-177
+      " fill="none" stroke="#00f5ff" stroke-width="4" opacity="0.4" stroke-dasharray="16, 12" />
+
+      <!-- Outer Watertight Silhouette Path (Prevents background light leaks) -->
+      <path d="
+        M 0 -220
+        C 70 -220 180 -180 260 -90
+        C 330 -10 360 90 320 200
+        C 290 280 210 320 150 290
+        C 110 270 110 220 140 180
+        C 180 130 190 70 140 10
+        C 100 -40 40 -80 0 -90
+        C -40 -80 -100 -40 -140 10
+        C -190 70 -180 130 -140 180
+        C -110 220 -110 270 -150 290
+        C -210 320 -290 280 -320 200
+        C -360 90 -330 -10 -260 -90
+        C -180 -180 -70 -220 0 -220
+        Z
+      " fill="#0b0f19" />
+
+      <!-- Left Bighorn Curved Shock Horn (Facets) -->
+      <!-- Horn Ridge 1 -->
+      <polygon points="0,-220 -120,-200 -220,-140 -160,-110 -60,-160" fill="url(#gold-horn-l)" />
+      <!-- Horn Arc Upper -->
+      <polygon points="-220,-140 -290,-50 -320,60 -240,30 -160,-110" fill="#f59e0b" />
+      <polygon points="-290,-50 -330,80 -300,180 -250,110 -240,30" fill="#d97706" />
+      <!-- Horn Curl Lower -->
+      <polygon points="-300,180 -250,260 -170,270 -180,200 -250,110" fill="#b45309" />
+      <polygon points="-170,270 -120,220 -140,160 -180,200" fill="#78350f" />
+      <polygon points="-140,160 -160,110 -200,130 -180,200" fill="#92400e" />
+
+      <!-- Right Bighorn Curved Shock Horn (Facets) -->
+      <!-- Horn Ridge 1 -->
+      <polygon points="0,-220 120,-200 220,-140 160,-110 60,-160" fill="url(#gold-horn-r)" />
+      <!-- Horn Arc Upper -->
+      <polygon points="220,-140 290,-50 320,60 240,30 160,-110" fill="#d97706" />
+      <polygon points="290,-50 330,80 300,180 250,110 240,30" fill="#b45309" />
+      <!-- Horn Curl Lower -->
+      <polygon points="300,180 250,260 170,270 180,200 250,110" fill="#78350f" />
+      <polygon points="170,270 120,220 140,160 180,200" fill="#92400e" />
+      <polygon points="140,160 160,110 200,130 180,200" fill="#b45309" />
+
+      <!-- Central Armored Skull & Brow -->
+      <!-- Center Forehead Crest -->
+      <polygon points="0,-220 -60,-160 0,-110 60,-160" fill="#475569" />
+      <!-- Forehead Upper Left/Right -->
+      <polygon points="-60,-160 -120,-100 -50,-60 0,-110" fill="#334155" />
+      <polygon points="60,-160 120,-100 50,-60 0,-110" fill="#1e293b" />
+
+      <!-- Brow Plate -->
+      <polygon points="0,-110 -50,-60 0,-20 50,-60" fill="#64748b" />
+      <polygon points="-50,-60 -110,-40 -60,10 0,-20" fill="#1e293b" />
+      <polygon points="50,-60 110,-40 60,10 0,-20" fill="#0f172a" />
+
+      <!-- Electric Cyan Predator Optics (Almond Angled) -->
+      <!-- Left Eye Socket & Eye -->
+      <polygon points="-110,-40 -140,-10 -80,-5 -60,10" fill="#090d16" />
+      <polygon points="-115,-25 -75,-10 -95,-5" fill="url(#cyan-optic)" />
+      <!-- Right Eye Socket & Eye -->
+      <polygon points="110,-40 140,-10 80,-5 60,10" fill="#090d16" />
+      <polygon points="115,-25 75,-10 95,-5" fill="url(#cyan-optic)" />
+
+      <!-- Bridge of Nose & Snout Plates -->
+      <polygon points="0,-20 -60,10 -40,110 0,130" fill="#334155" />
+      <polygon points="0,-20 60,10 40,110 0,130" fill="#1e293b" />
+      <!-- Lateral Cheek Plates -->
+      <polygon points="-60,10 -110,60 -70,140 -40,110" fill="#1e293b" />
+      <polygon points="60,10 110,60 70,140 40,110" fill="#0f172a" />
+
+      <!-- Armored Muzzle & Jaw -->
+      <polygon points="0,130 -40,110 -35,190 0,220" fill="#475569" />
+      <polygon points="0,130 40,110 35,190 0,220" fill="#1e293b" />
+      <polygon points="-40,110 -70,140 -50,210 -35,190" fill="#0f172a" />
+      <polygon points="40,110 70,140 50,210 35,190" fill="#0b0f19" />
+
+      <!-- Chin Node Anchor -->
+      <polygon points="0,220 -25,250 0,270 25,250" fill="#38bdf8" opacity="0.9" />
+
+      <!-- Chest Strike Plate / Impact Guard -->
+      <polygon points="0,270 -60,310 0,350 60,310" fill="#0f172a" stroke="#334155" stroke-width="2" />
+
+    </g>
+  </g>
+</svg>
