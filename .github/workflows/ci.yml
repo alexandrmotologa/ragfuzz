@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'web/package-lock.json'
+
+      - name: Build React 19 Studio
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Run Go Unit Tests
+        run: go test -v -race ./...
+
+      - name: Build ragfuzz CLI
+        run: go build -v -o bin/ragfuzz ./cmd/ragfuzz
+
+      - name: Start Mock RAG Server
+        run: |
+          go run ./examples/mock_rag_server.go -port 8080 -corpus ./examples/corpus &
+          sleep 3
+          curl -f http://localhost:8080/healthz
+
+      - name: Run ragfuzz Adversarial Fuzzing Gate
+        run: |
+          ./bin/ragfuzz run --config examples/ragfuzz.yaml --target http://localhost:8080/query --queries 50
+
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragfuzz-reports
+          path: |
+            junit.xml
+            report.html
+            ragfuzz-report.json

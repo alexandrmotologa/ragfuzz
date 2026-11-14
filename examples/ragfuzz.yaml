@@ -1,0 +1,63 @@
+# ragfuzz :: Production RAG Adversarial Fuzzing Configuration
+# Target: Enterprise RAG Quality Gate (< 20MB RAM, Go Engine, React 19 Studio)
+
+target:
+  endpoint: "${RAG_ENDPOINT:-http://localhost:8080/query}"
+  method: "POST"
+  headers:
+    Content-Type: "application/json"
+    Authorization: "Bearer ${RAG_API_KEY:-test-key}"
+  timeout: 10s
+  concurrency: 15
+  rate_limit_rps: 50
+  request_template: '{"query": "{query}", "top_k": 5}'
+  response_mapping:
+    answer_path: "answer"
+    chunks_path: "chunks"
+    chunk_id_path: "id"
+    chunk_text_path: "text"
+
+corpus:
+  paths:
+    - "./examples/corpus"
+  chunk_size: 800
+  chunk_overlap: 150
+  min_chunk_length: 30
+
+fuzzer:
+  total_queries: 120
+  enabled_vectors:
+    - "negation_inversion"
+    - "semantic_distractor"
+    - "entity_version_collision"
+    - "orthographic_noise"
+    - "contradiction_trap"
+    - "out_of_domain"
+  max_mutations_per_chunk: 5
+  levenshtein_max_distance: 2
+  seed: 42
+
+thresholds:
+  min_groundedness: 0.85
+  max_recall_degradation: 0.15
+  min_refusal_f1: 0.90
+  max_hallucination_rate: 0.10
+
+oracle:
+  mode: "heuristic"
+  top_k: 5
+
+reporting:
+  formats:
+    - "terminal"
+    - "junit"
+    - "json"
+    - "html"
+  output_dir: "."
+  junit_file: "junit.xml"
+  json_file: "ragfuzz-report.json"
+  html_file: "report.html"
+
+studio:
+  port: 4040
+  open_browser: false
