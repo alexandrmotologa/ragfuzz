@@ -30,7 +30,7 @@ jobs:
       - name: Build React 19 Studio
         run: |
           cd web
-          npm ci
+          npm install
           npm run build
 
       - name: Run Go Unit Tests
