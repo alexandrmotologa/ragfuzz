@@ -102,18 +102,43 @@ Executes adversarial fuzzing against the target RAG HTTP endpoint.
 Flags:
 - `--config <path>`: Path to YAML configuration file (default: `ragfuzz.yaml`)
 - `--target <url>`: Override target RAG endpoint URL
-- `--corpus <path>`: Override corpus path or glob pattern
+- `--preset <name>`: Apply integration preset (`langchain`, `llamaindex`, `openai`, `dspy`, `flowise`)
+- `--corpus <path>`: Override corpus path or glob pattern (supports Markdown, JSON, and PDF)
 - `--queries <n>`: Override total number of test queries to generate
 - `--concurrency <n>`: Worker goroutines concurrency (default: 10)
 - `--fail-below <float>`: Min groundedness threshold (0.0 to 1.0)
+- `--github-summary <path>`: Export GitHub PR summary markdown
 - `--studio`: Launch embedded evaluation studio after execution
 
 ### `ragfuzz studio`
-Launches the embedded React 19 evaluation studio.
+Launches the embedded React 19 evaluation studio on HTTP :4040 with live SSE updates, query inspection, 2D topology cluster view, and live query playground.
 
 Flags:
 - `--port <n>`: HTTP port to bind (default: 4040)
 - `--config <path>`: Path to configuration file
+
+### `ragfuzz export`
+Exports synthesized adversarial benchmarks into standard external dataset formats:
+
+```bash
+ragfuzz export --format ragas --out benchmark.json
+ragfuzz export --format huggingface --out dataset.jsonl
+ragfuzz export --format csv --out benchmark.csv
+```
+
+### `ragfuzz pr-comment`
+Generates a formatted Markdown summary suitable for GitHub Actions step summaries or pull request comments:
+
+```bash
+ragfuzz pr-comment --report ragfuzz-report.json --out github-summary.md
+```
+
+### `ragfuzz probe`
+Executes an on-the-fly single adversarial probe query against the target RAG endpoint:
+
+```bash
+ragfuzz probe --target http://localhost:8080/query --query "How does SSO setup work?" --vector negation_inversion
+```
 
 ### `ragfuzz diff`
 Compares two JSON evaluation reports to identify regressions between pull requests:
